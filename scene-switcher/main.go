@@ -6,16 +6,17 @@ import (
 	"log"
 	"os"
 
-	"github.com/atuleu/go-obs-websocket"
+	"github.com/caseymrm/go-obs-websocket"
 	ui "github.com/gizak/termui"
 
 	"github.com/jessevdk/go-flags"
 )
 
 type Options struct {
-	Verbose bool   `short:"v" long:"verbose" description:"Make verbose output"`
-	Address string `short:"a" long:"address" description:"Address of the OBS websocket" default:"localhost"`
-	Port    int    `short:"p" long:"port" description:"Port of the OBS websocket" default:"4444"`
+	Verbose  bool   `short:"v" long:"verbose" description:"Make verbose output"`
+	Address  string `short:"a" long:"address" description:"Address of the OBS websocket" default:"localhost"`
+	Port     int    `short:"p" long:"port" description:"Port of the OBS websocket" default:"4444"`
+	Password string `short:"w" long:"password" description:"Password for the OBS websocket" default:""`
 }
 
 type MyUI struct {
@@ -100,7 +101,7 @@ func Execute() error {
 	}
 
 	log.Printf("Connecting to %s:%d", opts.Address, opts.Port)
-	c, err := obsws.NewClient(opts.Address, opts.Port)
+	c, err := obsws.NewClient(opts.Address, opts.Port, opts.Password)
 	if err != nil {
 		return err
 	}

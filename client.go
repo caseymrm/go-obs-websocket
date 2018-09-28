@@ -29,7 +29,7 @@ type Client struct {
 }
 
 // NewClient connects to a websocket instance.
-func NewClient(address string, port int) (*Client, error) {
+func NewClient(address string, port int, password string) (*Client, error) {
 
 	ws, err := websocket.Dial(fmt.Sprintf("ws://%s:%d/", address, port),
 		"",
@@ -46,6 +46,19 @@ func NewClient(address string, port int) (*Client, error) {
 	}
 
 	go res.internalLoop()
+	if password == "" {
+		return res, nil
+	}
+
+	resp, err := res.GetAuthRequired()
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.AuthRequired {
+		res.Authenticate(password, resp.Challenge, resp.Salt)
+	}
+
 	return res, nil
 }
 
@@ -73,7 +86,7 @@ func (c *Client) handleResponse(frame []byte) {
 	}
 
 	// handle response
-	var respBase responseBase
+	var respBase ResponseBase
 	err = json.Unmarshal(frame, &respBase)
 	if err != nil {
 		panic(fmt.Sprintf("obsws: %s\n'%s'", err, frame))

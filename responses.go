@@ -10,21 +10,28 @@ type response interface {
 	messageID() string
 }
 
-type responseBase struct {
+type ResponseBase struct {
 	MessageID string `json:"message-id"`
 	Status    string `json:"status"`
 	Error     string `json:"error"`
 }
 
-func (r responseBase) error() error {
+func (r ResponseBase) error() error {
 	if strings.ToLower(r.Status) == "ok" {
 		return nil
 	}
 	return fmt.Errorf("obsws: status:%s error:%s", r.Status, r.Error)
 }
 
-func (r responseBase) messageID() string {
+func (r ResponseBase) messageID() string {
 	return r.MessageID
+}
+
+type GetAuthRequiredResponse struct {
+	AuthRequired bool   `json:"authRequired"`
+	Challenge    string `json:"challenge"`
+	Salt         string `json:"salt"`
+	*ResponseBase
 }
 
 type Source struct {
@@ -40,10 +47,10 @@ type Scene struct {
 type GetSceneListResponse struct {
 	CurrentScene string  `json:"current-scene"`
 	Scenes       []Scene `json:"scenes"`
-	*responseBase
+	*ResponseBase
 }
 
 type GetCurrentScene struct {
 	Scene
-	*responseBase
+	*ResponseBase
 }

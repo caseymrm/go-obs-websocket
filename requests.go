@@ -1,6 +1,10 @@
 package obsws
 
-import "fmt"
+import (
+	"crypto/sha256"
+	"encoding/base64"
+	"fmt"
+)
 
 type request interface {
 	setMessageID(uid string)
@@ -35,7 +39,7 @@ func (r *requestBase) responseType() response {
 func forgeRequest(name string) request {
 	return &requestBase{
 		RequestType: name,
-		rType:       &responseBase{},
+		rType:       &ResponseBase{},
 	}
 }
 
@@ -54,9 +58,23 @@ func forgeSetCurrentScene(name string) request {
 	return &setCurrentScene{
 		requestBase: requestBase{
 			RequestType: "SetCurrentScene",
-			rType:       &responseBase{},
+			rType:       &ResponseBase{},
 		},
 		SceneName: name,
+	}
+}
+
+func forgeAuthenticate(auth string) request {
+	type setCurrentScene struct {
+		requestBase
+		Auth string `json:"auth"`
+	}
+	return &setCurrentScene{
+		requestBase: requestBase{
+			RequestType: "Authenticate",
+			rType:       &ResponseBase{},
+		},
+		Auth: auth,
 	}
 }
 
@@ -73,6 +91,46 @@ func (c *Client) submitRequest(r request) (response, error) {
 		return nil, err
 	}
 	return resp, nil
+}
+
+func (c *Client) GetAuthRequired() (*GetAuthRequiredResponse, error) {
+	resp, err := c.submitRequest(forgeRequestWithExpectedResponse("GetAuthRequired", &GetAuthRequiredResponse{}))
+	if err != nil {
+		return nil, err
+	}
+	respCorrect, ok := resp.(*GetAuthRequiredResponse)
+	if ok == false {
+		return nil, fmt.Errorf("obsws: unexpected response from server: %#v", resp)
+	}
+	return respCorrect, nil
+}
+
+func b64encode(str []byte) string {
+	return base64.StdEncoding.EncodeToString([]byte(str))
+}
+
+func sha256encode(password, challenge, salt string) string {
+	authHash := sha256.New()
+	authHash.Write([]byte(password))
+	authHash.Write([]byte(salt))
+	authResponse := sha256.New()
+	authResponse.Write([]byte(authHash.Sum(nil)))
+	authResponse.Write([]byte(challenge))
+	auth := authResponse.Sum(nil)
+
+	return string(auth)
+}
+
+func (c *Client) Authenticate(password, challenge, salt string) (*ResponseBase, error) {
+	resp, err := c.submitRequest(forgeAuthenticate(sha256encode(password, challenge, salt)))
+	if err != nil {
+		return nil, err
+	}
+	respCorrect, ok := resp.(*ResponseBase)
+	if ok == false {
+		return nil, fmt.Errorf("obsws: unexpected response from server: %#v", resp)
+	}
+	return respCorrect, nil
 }
 
 func (c *Client) GetSceneList() (*GetSceneListResponse, error) {
