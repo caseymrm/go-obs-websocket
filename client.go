@@ -67,9 +67,9 @@ func (c *Client) handleResponse(frame []byte) {
 			//we only log unknown eventype
 			log.Printf("%s", err)
 			return
-		} else {
-			panic(fmt.Sprintf("obsws: %s", err))
 		}
+		panic(fmt.Sprintf("obsws: %s", err))
+
 	}
 
 	// handle response
